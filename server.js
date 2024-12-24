@@ -13,19 +13,24 @@ const app = express()
 const server = http.createServer(app)
 const wss = new WebSocketServer({ server })
 
-const getPRs = () => {
+const getPRs = async () => {
   const url =
     process.env.URL ||
     'https://api.github.com/repos/nookworth/tpg-dev-portal/pulls'
 
   try {
-    const response = axios.get(url, {
+    const response = await axios.get(url, {
       headers: {
         Accept: 'application/vnd.github+json',
-        "X-Github-Api-Version": "2022-11-28",
+        'X-GitHub-Api-Version': '2022-11-28',
       },
     })
-    return response.data
+    console.log(response?.data)
+    if (response?.status === 200) {
+      return response?.data
+    } else {
+      throw new Error('Failed to fetch PRs')
+    }
   } catch (e) {
     console.error(e)
   }
