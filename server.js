@@ -5,39 +5,35 @@
 // show status indicator lights: yellow = checks running, dark green = checks passed but awaiting approval, light green = checks passed and approved, red = checks failed
 
 import express from 'express'
-import WebSocket from 'ws'
+import { WebSocketServer } from 'ws'
 import http from 'node:http'
+import axios from 'axios'
 
 const app = express()
 const server = http.createServer(app)
-const wss = new WebSocket.Server({ server })
-const { fetch } = window
+const wss = new WebSocketServer({ server })
 
-const getPRs = async () => {
+const getPRs = () => {
   const url =
     process.env.URL ||
     'https://api.github.com/repos/nookworth/tpg-dev-portal/pulls'
 
   try {
-    const response = await fetch(url, {
+    const response = axios.get(url, {
       headers: {
         Accept: 'application/vnd.github+json',
-        'X-GitHub-Api-Version': '2022-11-28',
+        "X-Github-Api-Version": "2022-11-28",
       },
     })
-    if (!response.ok) {
-      throw new Error(`Response status: ${response.status}`)
-    }
-    const json = await response.json()
-    return json
+    return response.data
   } catch (e) {
     console.error(e)
   }
 }
 
-app.get('/', async (req, res) => {
+app.get('/', (req, res) => {
   try {
-    const prs = await getPRs()
+    const prs = getPRs()
     res.json(prs)
   } catch (e) {
     console.error(e)
