@@ -32,10 +32,17 @@ const getPRs = async () => {
   }
 }
 
+// in order to see statuses, i'll need to query the latest commit
+// https://docs.github.com/en/rest/commits/statuses?apiVersion=2022-11-28#get-the-combined-status-for-a-specific-reference
+// may need to query for checks instead/as well
+// https://docs.github.com/en/rest/checks?apiVersion=2022-11-28
+
 // the frontend will fetch PRs from this route
 app.get('/', async (_, res) => {
   try {
     const prs = await getPRs()
+
+    res.setHeader('Access-Control-Allow-Origin', '*')
     res.json(prs)
   } catch (e) {
     console.error(e)
