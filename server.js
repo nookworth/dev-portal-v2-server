@@ -36,6 +36,8 @@ const getPRs = async () => {
 app.get('/', async (_, res) => {
   try {
     const prs = await getPRs()
+
+    res.setHeader('Access-Control-Allow-Origin', '*')
     res.json(prs)
   } catch (e) {
     console.error(e)
