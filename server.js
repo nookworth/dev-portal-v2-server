@@ -2,28 +2,77 @@ import express from 'express'
 import { WebSocketServer } from 'ws'
 import http from 'node:http'
 import axios from 'axios'
+import { OWNER, REPO, BASE_URL } from './constants.js'
 
 const app = express()
 const server = http.createServer(app)
 const wss = new WebSocketServer({ server })
 
+const getCommitsOnPR = async prNumber => {
+  const commitsURL = `${BASE_URL}/repos/${OWNER}/${REPO}/pulls/${prNumber}/commits`
+  const commitsResponse = await axios.get(commitsURL, {
+    headers: {
+      Accept: 'application/vnd.github+json',
+      'X-GitHub-Api-Version': '2022-11-28',
+    },
+  })
+  const commitsStatus = commitsResponse?.status
+  if (commitsStatus === 200) {
+    return commitsResponse?.data
+  } else {
+    throw new Error(`Failed to fetch commits for PR ${prNumber}`)
+  }
+}
+
+const getStatusOfCommit = async commitSha => {
+  const statusURL = `${BASE_URL}/repos/${OWNER}/${REPO}/commits/${commitSha}/status`
+  const statusResponse = await axios.get(statusURL, {
+    headers: {
+      Accept: 'application/vnd.github+json',
+      'X-GitHub-Api-Version': '2022-11-28',
+    },
+  })
+  const statusStatus = statusResponse?.status
+  if (statusStatus === 200) {
+    const state = statusResponse?.data?.state
+    return state
+  } else {
+    throw new Error(`Failed to fetch status for ${commitSha}`)
+  }
+}
+
 // fetch PRs from GitHub REST API
 // in the future, this should fetch all of the logged-in user's PRs
 const getPRs = async () => {
-  const url =
-    process.env.URL ||
-    'https://api.github.com/repos/nookworth/tpg-dev-portal/pulls'
+  const allPRsURL =
+    process.env.URL || `${BASE_URL}/repos/${OWNER}/${REPO}/pulls`
 
   try {
-    const response = await axios.get(url, {
+    const response = await axios.get(allPRsURL, {
       headers: {
         Accept: 'application/vnd.github+json',
         'X-GitHub-Api-Version': '2022-11-28',
       },
     })
     const status = response?.status
-    if (status?.toString().startsWith('2')) {
-      return response?.data
+    if (status === 200) {
+      const commitShas = []
+      const prNumbers = response?.data?.map(pr => pr.number)
+      if (prNumbers?.length) {
+        for await (const prNumber of prNumbers) {
+          const commits = await getCommitsOnPR(prNumber)
+          const mostRecentCommitSha = commits[0]?.commit?.tree?.sha
+
+          const status = await getStatusOfCommit(mostRecentCommitSha)
+
+          commitShas.push({
+            prNumber,
+            mostRecentCommitSha,
+            status,
+          })
+        }
+      }
+      return commitShas
     } else {
       throw new Error('Failed to fetch PRs')
     }
