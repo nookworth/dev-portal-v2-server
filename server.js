@@ -8,41 +8,47 @@ const app = express()
 const server = http.createServer(app)
 const wss = new WebSocketServer({ server })
 
-const getCommitsOnPR = async prNumber => {
-  const commitsURL = `${BASE_URL}/repos/${OWNER}/${REPO}/pulls/${prNumber}/commits`
-  const commitsResponse = await axios.get(commitsURL, {
+const getCheckSuitesForCommit = async sha => {
+  const checkSuiteUrl = `${BASE_URL}/repos/${OWNER}/${REPO}/commits/${sha}/check-suites`
+  const response = await axios.get(checkSuiteUrl, {
     headers: {
       Accept: 'application/vnd.github+json',
       'X-GitHub-Api-Version': '2022-11-28',
     },
   })
-  const commitsStatus = commitsResponse?.status
-  if (commitsStatus === 200) {
-    return commitsResponse?.data
+  const status = response?.status
+
+  if (status === 200) {
+    const checkResults = []
+    const checkSuites = response?.data?.check_suites
+    for (const { id, conclusion, status } of checkSuites) {
+      checkResults.push({ id, conclusion, status })
+    }
+    return checkResults
   } else {
-    throw new Error(`Failed to fetch commits for PR ${prNumber}`)
+    throw new Error(`Failed to fetch check suite data for ${sha}`)
   }
 }
 
-const getStatusOfCommit = async commitSha => {
-  const statusURL = `${BASE_URL}/repos/${OWNER}/${REPO}/commits/${commitSha}/status`
-  const statusResponse = await axios.get(statusURL, {
-    headers: {
-      Accept: 'application/vnd.github+json',
-      'X-GitHub-Api-Version': '2022-11-28',
-    },
-  })
-  const statusStatus = statusResponse?.status
-  if (statusStatus === 200) {
-    const state = statusResponse?.data?.state
-    return state
-  } else {
-    throw new Error(`Failed to fetch status for ${commitSha}`)
-  }
-}
+/**@description this may be needed when working with travelpass pull requests */
+// const getStatusOfCommit = async sha => {
+//   const statusURL = `${BASE_URL}/repos/${OWNER}/${REPO}/commits/${sha}/status`
+//   const response = await axios.get(statusURL, {
+//     headers: {
+//       Accept: 'application/vnd.github+json',
+//       'X-GitHub-Api-Version': '2022-11-28',
+//     },
+//   })
+//   const status = response?.status
+//   if (status === 200) {
+//     const state = response?.data?.state
+//     return state
+//   } else {
+//     throw new Error(`Failed to fetch status for ${sha}`)
+//   }
+// }
 
-// fetch PRs from GitHub REST API
-// in the future, this should fetch all of the logged-in user's PRs
+/**@todo this should fetch all of the logged-in user's PRs */
 const getPRs = async () => {
   const allPRsURL =
     process.env.URL || `${BASE_URL}/repos/${OWNER}/${REPO}/pulls`
@@ -55,20 +61,27 @@ const getPRs = async () => {
       },
     })
     const status = response?.status
+
     if (status === 200) {
       const commitShas = []
-      const prNumbers = response?.data?.map(pr => pr.number)
-      if (prNumbers?.length) {
-        for await (const prNumber of prNumbers) {
-          const commits = await getCommitsOnPR(prNumber)
-          const mostRecentCommitSha = commits[0]?.commit?.tree?.sha
-
-          const status = await getStatusOfCommit(mostRecentCommitSha)
+      const prData = response?.data?.map(pr => ({
+        head: pr.head,
+        number: pr.number,
+        title: pr.title,
+      }))
+      if (prData?.length) {
+        for await (const {
+          head: { sha },
+          number,
+          title,
+        } of prData) {
+          // const commitStatus = await getStatusOfCommit(sha)
+          const checkSuites = await getCheckSuitesForCommit(sha)
 
           commitShas.push({
-            prNumber,
-            mostRecentCommitSha,
-            status,
+            checkSuites,
+            number,
+            title,
           })
         }
       }
@@ -81,16 +94,12 @@ const getPRs = async () => {
   }
 }
 
-// in order to see statuses, i'll need to query the latest commit
-// https://docs.github.com/en/rest/commits/statuses?apiVersion=2022-11-28#get-the-combined-status-for-a-specific-reference
-// may need to query for checks instead/as well
-// https://docs.github.com/en/rest/checks?apiVersion=2022-11-28
-
-// the frontend will fetch PRs from this route
+// the frontend fetches PRs from this route
 app.get('/', async (_, res) => {
   try {
     const prs = await getPRs()
 
+    /**@todo don't allow ALL origins */
     res.setHeader('Access-Control-Allow-Origin', '*')
     res.json(prs)
   } catch (e) {
