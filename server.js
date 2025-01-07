@@ -3,10 +3,18 @@ import { WebSocketServer } from 'ws'
 import http from 'node:http'
 import axios from 'axios'
 import { OWNER, REPO, BASE_URL } from './constants.js'
+import { WebClient } from '@slack/web-api'
+import bodyParser from 'body-parser'
+import 'dotenv/config'
+
+const { SLACK_TOKEN, CHANNEL_ID } = process.env
 
 const app = express()
+const client = new WebClient(SLACK_TOKEN)
 const server = http.createServer(app)
 const wss = new WebSocketServer({ server })
+
+app.use(bodyParser.text())
 
 const getCheckSuitesForCommit = async sha => {
   const checkSuiteUrl = `${BASE_URL}/repos/${OWNER}/${REPO}/commits/${sha}/check-suites`
@@ -105,6 +113,22 @@ app.get('/', async (_, res) => {
   } catch (e) {
     console.error(e)
     res.status(500).send('Error fetching PRs')
+  }
+})
+
+app.post('/review-message', async (req, res) => {
+  const { body } = req
+  try {
+    const response = await client.chat.postMessage({
+      text: body,
+      channel: CHANNEL_ID,
+    })
+    if (response.ok) {
+      res.setHeader('Access-Control-Allow-Origin', '*')
+      res.status(200).send('Message posted to slack!')
+    }
+  } catch (error) {
+    console.error(error)
   }
 })
 
