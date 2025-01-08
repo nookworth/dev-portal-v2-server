@@ -14,8 +14,8 @@ const getCheckSuitesForCommit = async sha => {
   if (status === 200) {
     const checkResults = []
     const checkSuites = response?.data?.check_suites
-    for (const { id, conclusion, status } of checkSuites) {
-      checkResults.push({ id, conclusion, status })
+    for (const { id, conclusion, status, app } of checkSuites) {
+      checkResults.push({ id, conclusion, status, app: app.name })
     }
     return checkResults
   } else {
@@ -61,12 +61,14 @@ const getPRs = async () => {
         head: pr.head,
         number: pr.number,
         title: pr.title,
+        url: pr.html_url,
       }))
       if (prData?.length) {
         for await (const {
           head: { sha },
           number,
           title,
+          url,
         } of prData) {
           // const commitStatus = await getStatusOfCommit(sha)
           const checkSuites = await getCheckSuitesForCommit(sha)
@@ -75,6 +77,7 @@ const getPRs = async () => {
             checkSuites,
             number,
             title,
+            url,
           })
         }
       }
