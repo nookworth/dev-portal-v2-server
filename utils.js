@@ -1,67 +1,71 @@
 import axios from 'axios'
-import { OWNER, REPO, BASE_URL } from './constants.js'
+import { owner, ghPat, repo, baseUrl, user } from './constants.js'
 
-const getCheckSuitesForCommit = async sha => {
-  const checkSuiteUrl = `${BASE_URL}/repos/${OWNER}/${REPO}/commits/${sha}/check-suites`
-  const response = await axios.get(checkSuiteUrl, {
-    headers: {
-      Accept: 'application/vnd.github+json',
-      'X-GitHub-Api-Version': '2022-11-28',
-    },
-  })
-  const status = response?.status
-
-  if (status === 200) {
-    const checkResults = []
-    const checkSuites = response?.data?.check_suites
-    for (const { id, conclusion, status, app } of checkSuites) {
-      checkResults.push({ id, conclusion, status, app: app.name })
-    }
-    return checkResults
-  } else {
-    throw new Error(`Failed to fetch check suite data for ${sha}`)
-  }
-}
-
-/**@description this may be needed when working with travelpass pull requests */
-// const getStatusOfCommit = async sha => {
-//   const statusURL = `${BASE_URL}/repos/${OWNER}/${REPO}/commits/${sha}/status`
-//   const response = await axios.get(statusURL, {
+/**@todo this will require the 'checks' permission for my PAT, but I could not find it in the permissions list to request it */
+// const getCheckSuitesForCommit = async sha => {
+//   const checkSuiteUrl = `${baseUrl}/repos/${owner}/${repo}/commits/${sha}/check-suites`
+//   const response = await axios.get(checkSuiteUrl, {
 //     headers: {
 //       Accept: 'application/vnd.github+json',
+//       Authorization: `Bearer ${ghPat}`,
 //       'X-GitHub-Api-Version': '2022-11-28',
 //     },
 //   })
 //   const status = response?.status
+
 //   if (status === 200) {
-//     const state = response?.data?.state
-//     return state
+//     const checkResults = []
+//     const checkSuites = response?.data?.check_suites
+//     for (const { id, conclusion, status, app } of checkSuites) {
+//       checkResults.push({ id, conclusion, status, app: app.name })
+//     }
+//     return checkResults
 //   } else {
-//     throw new Error(`Failed to fetch status for ${sha}`)
+//     throw new Error(`Failed to fetch check suite data for ${sha}`)
 //   }
 // }
 
+/**@description this may be needed when working with travelpass pull requests */
+const getStatusOfCommit = async sha => {
+  const statusURL = `${baseUrl}/repos/${owner}/${repo}/commits/${sha}/status`
+  const response = await axios.get(statusURL, {
+    headers: {
+      Accept: 'application/vnd.github+json',
+      Authorization: `Bearer ${ghPat}`,
+      'X-GitHub-Api-Version': '2022-11-28',
+    },
+  })
+  const status = response?.status
+  if (status === 200) {
+    const state = response?.data?.state
+    return state
+  } else {
+    throw new Error(`Failed to fetch status for ${sha}`)
+  }
+}
+
 /**@todo this should fetch all of the logged-in user's PRs */
 const getPRs = async () => {
-  const allPRsURL =
-    process.env.URL || `${BASE_URL}/repos/${OWNER}/${REPO}/pulls`
+  const allPRsURL = `${baseUrl}/repos/${owner}/${repo}/pulls`
 
   try {
     const response = await axios.get(allPRsURL, {
       headers: {
         Accept: 'application/vnd.github+json',
+        Authorization: `Bearer ${ghPat}`,
         'X-GitHub-Api-Version': '2022-11-28',
       },
     })
     const status = response?.status
 
     if (status === 200) {
-      const commitShas = []
+      const filteredPRs = []
       const prData = response?.data?.map(pr => ({
         head: pr.head,
         number: pr.number,
         title: pr.title,
         url: pr.html_url,
+        username: pr.user.login,
       }))
       if (prData?.length) {
         for await (const {
@@ -69,19 +73,22 @@ const getPRs = async () => {
           number,
           title,
           url,
+          username,
         } of prData) {
-          // const commitStatus = await getStatusOfCommit(sha)
-          const checkSuites = await getCheckSuitesForCommit(sha)
+          if (username !== user) continue
 
-          commitShas.push({
-            checkSuites,
+          const status = await getStatusOfCommit(sha)
+
+          filteredPRs.push({
             number,
+            status,
             title,
             url,
+            username,
           })
         }
       }
-      return commitShas
+      return filteredPRs
     } else {
       throw new Error('Failed to fetch PRs')
     }
@@ -90,4 +97,4 @@ const getPRs = async () => {
   }
 }
 
-export { getCheckSuitesForCommit, getPRs }
+export { getPRs }

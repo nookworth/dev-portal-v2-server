@@ -11,5 +11,9 @@
   },
   "devDependencies": {
     "@types/node": "^22.10.2"
+  },
+  "scripts": {
+    "tpg": "nodemon server.js travelpassgroup travelpass.com nookoid",
+    "test": "nodemon server.js"
   }
 }

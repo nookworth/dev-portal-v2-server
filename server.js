@@ -45,7 +45,7 @@ app.post('/review-message', async (req, res) => {
   }
 })
 
-app.post('/webhook', express.json(), (req, res) => {
+app.post('/webhook', (req, res) => {
   console.log('GitHub webhook event received:', req.body)
   wss.clients.forEach(client => {
     if (client.readyState === WebSocket.OPEN) {
