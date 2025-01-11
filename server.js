@@ -1,7 +1,7 @@
 import express from 'express'
 import { WebSocketServer } from 'ws'
 import http from 'node:http'
-import { getPRs } from './utils.js'
+import { formatSlackMessage, getPRs, getIndividualPR } from './utils.js'
 import { WebClient } from '@slack/web-api'
 import bodyParser from 'body-parser'
 import 'dotenv/config'
@@ -29,11 +29,24 @@ app.get('/', async (_, res) => {
   }
 })
 
-app.post('/review-message', async (req, res) => {
-  const { body } = req
+app.get('/:number', async (req, res) => {
+  const { number } = req.params
+  try {
+    const pr = await getIndividualPR(number)
+    res.setHeader('Access-Control-Allow-Origin', '*')
+    res.json(pr)
+  } catch (e) {
+    console.error(e)
+    res.status(500).send(`Error fetching PR number ${number}`)
+  }
+})
+
+app.post('/review-message', express.json(), async (req, res) => {
+  const { title, url } = req.body
+  const text = formatSlackMessage({ title, url })
   try {
     const response = await client.chat.postMessage({
-      text: body,
+      text,
       channel: CHANNEL_ID,
     })
     if (response.ok) {
