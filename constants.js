@@ -3,10 +3,10 @@ let repo = process.argv[3]
 let user = process.argv[4]
 const baseUrl = 'https://api.github.com'
 const devFrontendReviewsChannelId = 'C039QHRA6TA'
-const devopsMentorshipHubChannelId = 'C07M05V1A2F'
+const deploymentBotTestChannelId = 'C089KFXCWJC'
 const channelId = process.argv[2]
   ? devFrontendReviewsChannelId
-  : devopsMentorshipHubChannelId
+  : deploymentBotTestChannelId
 const ghPat = process.env.PAT
 
 owner ||= 'nookworth'
