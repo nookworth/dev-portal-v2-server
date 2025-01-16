@@ -4,9 +4,10 @@ import http from 'node:http'
 import { formatSlackMessage, getPRs, getIndividualPR } from './utils.js'
 import { WebClient } from '@slack/web-api'
 import bodyParser from 'body-parser'
+import { channelId as channel } from './constants.js'
 import 'dotenv/config'
 
-const { SLACK_TOKEN, CHANNEL_ID } = process.env
+const { SLACK_TOKEN } = process.env
 
 const app = express()
 const client = new WebClient(SLACK_TOKEN)
@@ -14,6 +15,7 @@ const server = http.createServer(app)
 const wss = new WebSocketServer({ server })
 
 app.use(bodyParser.text())
+app.use(bodyParser.json())
 
 // the frontend fetches PRs from this route
 app.get('/', async (_, res) => {
@@ -41,13 +43,13 @@ app.get('/:number', async (req, res) => {
   }
 })
 
-app.post('/review-message', express.json(), async (req, res) => {
+app.post('/review-message', async (req, res) => {
   const { title, url } = req.body
   const text = formatSlackMessage({ title, url })
   try {
     const response = await client.chat.postMessage({
       text,
-      channel: CHANNEL_ID,
+      channel,
     })
     if (response.ok) {
       res.setHeader('Access-Control-Allow-Origin', '*')
