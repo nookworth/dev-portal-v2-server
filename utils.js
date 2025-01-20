@@ -59,8 +59,7 @@ const getIndividualPR = async number => {
   })
   const status = response?.status
   if (status === 200) {
-    const { mergeable } = response?.data
-    return mergeable
+    return response?.data
   } else {
     throw new Error(`Failed to fetch info for PR #${number}`)
   }

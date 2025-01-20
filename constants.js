@@ -9,8 +9,8 @@ const channelId = process.argv[2]
   : deploymentBotTestChannelId
 const ghPat = process.env.PAT
 
-owner ||= 'nookworth'
-repo ||= 'tpg-dev-portal'
-user ||= 'nookworth'
+owner ||= 'travelpassgroup'
+repo ||= 'travelpass.com'
+user ||= 'nookoid'
 
 export { baseUrl, channelId, ghPat, owner, repo, user }

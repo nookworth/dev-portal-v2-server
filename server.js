@@ -52,8 +52,26 @@ app.post('/review-message', async (req, res) => {
       channel,
     })
     if (response.ok) {
+      const { ts } = response.message
       res.setHeader('Access-Control-Allow-Origin', '*')
-      res.status(200).send('Message posted to slack!')
+      res.status(200).send({ ts })
+    }
+  } catch (error) {
+    console.error(error)
+  }
+})
+
+app.delete('/review-message/', async (req, res) => {
+  const { ts } = req.body
+  console.log({ ts })
+  try {
+    const response = await client.chat.delete({
+      channel,
+      ts,
+    })
+    if (response.ok) {
+      res.setHeader('Access-Control-Allow-Origin', '*')
+      res.status(200).send('Message deleted in slack!')
     }
   } catch (error) {
     console.error(error)
