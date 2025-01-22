@@ -43,6 +43,11 @@ app.get('/:number', async (req, res) => {
   }
 })
 
+app.post('/new', async (req, res) => {
+  console.log('New PR received:', req.body)
+  res.status(200).send('New PR received')
+})
+
 app.post('/review-message', async (req, res) => {
   const { title, url } = req.body
   const text = formatSlackMessage({ title, url })
@@ -61,9 +66,18 @@ app.post('/review-message', async (req, res) => {
   }
 })
 
-app.delete('/review-message/', async (req, res) => {
+app.post('/webhook', (req, res) => {
+  console.log('GitHub webhook event received:', req.body)
+  wss.clients.forEach(client => {
+    if (client.readyState === WebSocket.OPEN) {
+      client.send(JSON.stringify(req.body))
+    }
+  })
+  res.status(200).send('Event received')
+})
+
+app.delete('/review-message', async (req, res) => {
   const { ts } = req.body
-  console.log({ ts })
   try {
     const response = await client.chat.delete({
       channel,
@@ -76,16 +90,6 @@ app.delete('/review-message/', async (req, res) => {
   } catch (error) {
     console.error(error)
   }
-})
-
-app.post('/webhook', (req, res) => {
-  console.log('GitHub webhook event received:', req.body)
-  wss.clients.forEach(client => {
-    if (client.readyState === WebSocket.OPEN) {
-      client.send(JSON.stringify(req.body))
-    }
-  })
-  res.status(200).send('Event received')
 })
 
 wss.on('connection', ws => {

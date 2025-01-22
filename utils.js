@@ -5,31 +5,6 @@ export const formatSlackMessage = ({ title, url }) => {
   return `*${user}* requests a review:\n${url}: ${title}`
 }
 
-/**@todo this will require the 'checks' permission for my PAT, but I could not find it in the permissions list to request it */
-// const getCheckSuitesForCommit = async sha => {
-//   const checkSuiteUrl = `${baseUrl}/repos/${owner}/${repo}/commits/${sha}/check-suites`
-//   const response = await axios.get(checkSuiteUrl, {
-//     headers: {
-//       Accept: 'application/vnd.github+json',
-//       Authorization: `Bearer ${ghPat}`,
-//       'X-GitHub-Api-Version': '2022-11-28',
-//     },
-//   })
-//   const status = response?.status
-
-//   if (status === 200) {
-//     const checkResults = []
-//     const checkSuites = response?.data?.check_suites
-//     for (const { id, conclusion, status, app } of checkSuites) {
-//       checkResults.push({ id, conclusion, status, app: app.name })
-//     }
-//     return checkResults
-//   } else {
-//     throw new Error(`Failed to fetch check suite data for ${sha}`)
-//   }
-// }
-
-/**@description this may be needed when working with travelpass pull requests */
 const getStatusOfCommit = async sha => {
   const statusURL = `${baseUrl}/repos/${owner}/${repo}/commits/${sha}/status`
   const response = await axios.get(statusURL, {
@@ -65,7 +40,6 @@ const getIndividualPR = async number => {
   }
 }
 
-/**@todo this should fetch all of the logged-in user's PRs */
 const getPRs = async () => {
   const allPRsURL = `${baseUrl}/repos/${owner}/${repo}/pulls`
 
