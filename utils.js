@@ -1,18 +1,36 @@
 import axios from 'axios'
-import { owner, ghPat, repo, baseUrl, user } from './constants.js'
+import { owner, headers, repo, baseUrl, user } from './constants.js'
+
+export const createPullRequest = async (body, head, title) => {
+  const url = `${baseUrl}/repos/${owner}/${repo}/pulls`
+  const response = await axios.post(
+    url,
+    {
+      base: 'master',
+      body,
+      head,
+      title,
+    },
+    {
+      headers,
+    }
+  )
+  const status = response?.status
+  if (status === 201) {
+    return response?.data
+  } else {
+    throw new Error(`Failed to create PR: ${status.code}`)
+  }
+}
 
 export const formatSlackMessage = ({ title, url }) => {
   return `*${user}* requests a review:\n${url}: ${title}`
 }
 
 const getStatusOfCommit = async sha => {
-  const statusURL = `${baseUrl}/repos/${owner}/${repo}/commits/${sha}/status`
-  const response = await axios.get(statusURL, {
-    headers: {
-      Accept: 'application/vnd.github+json',
-      Authorization: `Bearer ${ghPat}`,
-      'X-GitHub-Api-Version': '2022-11-28',
-    },
+  const url = `${baseUrl}/repos/${owner}/${repo}/commits/${sha}/status`
+  const response = await axios.get(url, {
+    headers,
   })
   const status = response?.status
   if (status === 200) {
@@ -26,11 +44,7 @@ const getStatusOfCommit = async sha => {
 const getIndividualPR = async number => {
   const url = `${baseUrl}/repos/${owner}/${repo}/pulls/${number}`
   const response = await axios.get(url, {
-    headers: {
-      Accept: 'application/vnd.github+json',
-      Authorization: `Bearer ${ghPat}`,
-      'X-GitHub-Api-Version': '2022-11-28',
-    },
+    headers,
   })
   const status = response?.status
   if (status === 200) {
@@ -45,11 +59,7 @@ const getPRs = async () => {
 
   try {
     const response = await axios.get(allPRsURL, {
-      headers: {
-        Accept: 'application/vnd.github+json',
-        Authorization: `Bearer ${ghPat}`,
-        'X-GitHub-Api-Version': '2022-11-28',
-      },
+      headers,
     })
     const status = response?.status
 
@@ -65,7 +75,7 @@ const getPRs = async () => {
       }))
       if (prData?.length) {
         for await (const {
-          head: { sha },
+          head: { ref, sha },
           mergeable,
           number,
           title,
@@ -79,6 +89,7 @@ const getPRs = async () => {
           filteredPRs.push({
             number,
             mergeable,
+            ref,
             status,
             title,
             url,

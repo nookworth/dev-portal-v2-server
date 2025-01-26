@@ -13,7 +13,7 @@
     "@types/node": "^22.10.2"
   },
   "scripts": {
-    "prod": "nodemon server.js travelpassgroup travelpass.com nookoid",
-    "dev": "nodemon server.js"
+    "prod": "nodemon server.js false travelpassgroup travelpass.com nookoid",
+    "dev": "nodemon server.js true travelpassgroup travelpass.com nookoid"
   }
 }

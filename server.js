@@ -1,7 +1,12 @@
 import express from 'express'
 import { WebSocketServer } from 'ws'
 import http from 'node:http'
-import { formatSlackMessage, getPRs, getIndividualPR } from './utils.js'
+import {
+  createPullRequest,
+  formatSlackMessage,
+  getPRs,
+  getIndividualPR,
+} from './utils.js'
 import { WebClient } from '@slack/web-api'
 import bodyParser from 'body-parser'
 import { channelId as channel } from './constants.js'
@@ -44,8 +49,15 @@ app.get('/:number', async (req, res) => {
 })
 
 app.post('/new', async (req, res) => {
-  console.log('New PR received:', req.body)
-  res.status(200).send('New PR received')
+  const { body, head, title } = req.body
+  try {
+    const pr = await createPullRequest(body, head, title)
+    res.setHeader('Access-Control-Allow-Origin', '*')
+    res.status(200).send(pr)
+  } catch (e) {
+    console.error(e)
+    res.status(500).send('Error creating PR')
+  }
 })
 
 app.post('/review-message', async (req, res) => {
