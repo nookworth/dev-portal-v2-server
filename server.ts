@@ -69,7 +69,7 @@ app.post('/review-message', async (req, res) => {
       channel,
     })
     if (response.ok) {
-      const { ts } = response.message
+      const { ts } = response.message ?? {}
       res.setHeader('Access-Control-Allow-Origin', '*')
       res.status(200).send({ ts })
     }

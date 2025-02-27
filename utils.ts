@@ -19,7 +19,7 @@ export const createPullRequest = async (body, head, title) => {
   if (status === 201) {
     return response?.data
   } else {
-    throw new Error(`Failed to create PR: ${status.code}`)
+    throw new Error(`Failed to create PR: ${status}`)
   }
 }
 
@@ -64,7 +64,15 @@ const getPRs = async () => {
     const status = response?.status
 
     if (status === 200) {
-      const filteredPRs = []
+      const filteredPRs: Array<{
+        number: number
+        mergeable: string
+        ref: string
+        status: string
+        title: string
+        url: string
+        username: string
+      }> = []
       const prData = response?.data?.map(pr => ({
         head: pr.head,
         mergeable: pr.mergeable,
