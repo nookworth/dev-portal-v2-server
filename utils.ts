@@ -1,7 +1,7 @@
 import axios from 'axios'
 import { owner, headers, repo, baseUrl, user } from './constants.js'
 
-export const createPullRequest = async (body, head, title) => {
+export const createPullRequest = async (body: string, head: string, title: string) => {
   const url = `${baseUrl}/repos/${owner}/${repo}/pulls`
   const response = await axios.post(
     url,
@@ -23,11 +23,11 @@ export const createPullRequest = async (body, head, title) => {
   }
 }
 
-export const formatSlackMessage = ({ title, url }) => {
+export const formatSlackMessage = ({ title, url }: { title: string, url: string }) => {
   return `*${user}* requests a review:\n${url}: ${title}`
 }
 
-const getStatusOfCommit = async sha => {
+const getStatusOfCommit = async (sha: string) => {
   const url = `${baseUrl}/repos/${owner}/${repo}/commits/${sha}/status`
   const response = await axios.get(url, {
     headers,
@@ -41,7 +41,7 @@ const getStatusOfCommit = async sha => {
   }
 }
 
-const getIndividualPR = async number => {
+const getIndividualPR = async (number: string) => {
   const url = `${baseUrl}/repos/${owner}/${repo}/pulls/${number}`
   const response = await axios.get(url, {
     headers,
@@ -73,7 +73,7 @@ const getPRs = async () => {
         url: string
         username: string
       }> = []
-      const prData = response?.data?.map(pr => ({
+      const prData = response?.data?.map((pr: any) => ({
         head: pr.head,
         mergeable: pr.mergeable,
         number: pr.number,
