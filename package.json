@@ -1,6 +1,6 @@
 {
   "type": "module",
-  "main": "server.js",
+  "main": "server.ts",
   "dependencies": {
     "@octokit/tsconfig": "^4.0.0",
     "@octokit/types": "^13.8.0",
@@ -19,8 +19,8 @@
     "@types/ws": "^8.5.14"
   },
   "scripts": {
-    "dev": "nodemon server.js false travelpassgroup travelpass.com nookoid",
-    "prod": "nodemon server.js false travelpassgroup travelpass.com nookoid",
-    "test": "nodemon server.js true travelpassgroup travelpass.com nookoid"
+    "prod": "nodemon server.ts false travelpassgroup travelpass.com nookoid",
+    "test": "nodemon server.ts true nookworth tpg-dev-portal nookworth",
+    "tpgTest": "nodemon server.ts true travelpassgroup travelpass.com nookoid"
   }
 }

@@ -1,20 +1,32 @@
 import axios from 'axios'
-import { owner, headers, repo, baseUrl, user } from './constants.js'
+import {
+  baseRepo as base,
+  owner,
+  auth,
+  headers,
+  repo,
+  baseUrl,
+  user,
+} from './constants.ts'
+import { Octokit } from 'octokit'
 
-export const createPullRequest = async (body: string, head: string, title: string) => {
-  const url = `${baseUrl}/repos/${owner}/${repo}/pulls`
-  const response = await axios.post(
-    url,
-    {
-      base: 'master',
-      body,
-      head,
-      title,
-    },
-    {
-      headers,
-    }
-  )
+const octokit = new Octokit({
+  auth,
+})
+
+export const createPullRequest = async (
+  body: string,
+  head: string,
+  title: string
+) => {
+  const response = await octokit.rest.pulls.create({
+    owner,
+    repo,
+    base,
+    body,
+    head,
+    title,
+  })
   const status = response?.status
   if (status === 201) {
     return response?.data
@@ -23,43 +35,49 @@ export const createPullRequest = async (body: string, head: string, title: strin
   }
 }
 
-export const formatSlackMessage = ({ title, url }: { title: string, url: string }) => {
+export const formatSlackMessage = ({
+  title,
+  url,
+}: {
+  title: string
+  url: string
+}) => {
   return `*${user}* requests a review:\n${url}: ${title}`
 }
 
-const getStatusOfCommit = async (sha: string) => {
-  const url = `${baseUrl}/repos/${owner}/${repo}/commits/${sha}/status`
-  const response = await axios.get(url, {
-    headers,
+const getStatusOfCommit = async (ref: string) => {
+  const response = await octokit.rest.repos.getCommit({
+    owner,
+    repo,
+    ref,
   })
   const status = response?.status
   if (status === 200) {
-    const state = response?.data?.state
+    const state = response?.data
     return state
   } else {
-    throw new Error(`Failed to fetch status for ${sha}`)
+    throw new Error(`Failed to fetch status for ${ref}`)
   }
 }
 
-const getIndividualPR = async (number: string) => {
-  const url = `${baseUrl}/repos/${owner}/${repo}/pulls/${number}`
-  const response = await axios.get(url, {
-    headers,
+const getIndividualPR = async (prNumber: string) => {
+  const response = await octokit.rest.pulls.get({
+    owner,
+    repo,
+    pull_number: parseInt(prNumber),
   })
-  const status = response?.status
-  if (status === 200) {
+  if (response.status === 200) {
     return response?.data
   } else {
-    throw new Error(`Failed to fetch info for PR #${number}`)
+    throw new Error(`Failed to fetch info for PR #${prNumber}`)
   }
 }
 
 const getPRs = async () => {
-  const allPRsURL = `${baseUrl}/repos/${owner}/${repo}/pulls`
-
   try {
-    const response = await axios.get(allPRsURL, {
-      headers,
+    const response = await octokit.rest.pulls.list({
+      owner,
+      repo,
     })
     const status = response?.status
 

@@ -6,10 +6,10 @@ import {
   formatSlackMessage,
   getPRs,
   getIndividualPR,
-} from './utils.js'
+} from './utils.ts'
 import { WebClient } from '@slack/web-api'
 import bodyParser from 'body-parser'
-import { channelId as channel } from './constants.js'
+import { channelId as channel } from './constants.ts'
 import 'dotenv/config'
 
 const { SLACK_TOKEN } = process.env
@@ -50,6 +50,7 @@ app.get('/:number', async (req, res) => {
 
 app.post('/new', async (req, res) => {
   const { body, head, title } = req.body
+  console.log({ body, head, title })
   try {
     const pr = await createPullRequest(body, head, title)
     res.setHeader('Access-Control-Allow-Origin', '*')
