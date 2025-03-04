@@ -1,5 +1,6 @@
 import { baseRepo as base, owner, auth, repo, user } from './constants.ts'
 import { Octokit } from 'octokit'
+import { tool, Tool } from '@langchain/core/tools'
 
 const octokit = new Octokit({
   auth,

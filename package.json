@@ -2,12 +2,15 @@
   "type": "module",
   "main": "server.ts",
   "dependencies": {
+    "@langchain/core": "^0.3.42",
+    "@langchain/openai": "^0.4.4",
     "@octokit/tsconfig": "^4.0.0",
     "@octokit/types": "^13.8.0",
     "@slack/web-api": "^7.8.0",
     "body-parser": "^1.20.3",
     "dotenv": "^16.4.7",
     "express": "^4.21.2",
+    "langchain": "^0.3.19",
     "octokit": "^4.1.2",
     "typescript": "^5.7.3",
     "ws": "^8.18.0"

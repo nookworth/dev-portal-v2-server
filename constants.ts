@@ -10,6 +10,7 @@ const devFrontendReviewsChannelId = 'C039QHRA6TA'
 const deploymentBotTestChannelId = 'C089KFXCWJC'
 const channelId =
   test === 'true' ? deploymentBotTestChannelId : devFrontendReviewsChannelId
+const langchainApiKey = process.env.LANGCHAIN_API_KEY
 const openAIKey = process.env.OPENAI_API_KEY
 const nookworthPat = process.env.NOOKWORTH_PAT
 const tpgPat = process.env.PAT
@@ -41,4 +42,5 @@ export {
   repo,
   user,
   openAIKey,
+  langchainApiKey,
 }
