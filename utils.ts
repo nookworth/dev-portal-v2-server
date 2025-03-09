@@ -1,13 +1,4 @@
-import axios from 'axios'
-import {
-  baseRepo as base,
-  owner,
-  auth,
-  headers,
-  repo,
-  baseUrl,
-  user,
-} from './constants.ts'
+import { baseRepo as base, owner, auth, repo, user } from './constants.ts'
 import { Octokit } from 'octokit'
 
 const octokit = new Octokit({
@@ -45,20 +36,20 @@ export const formatSlackMessage = ({
   return `*${user}* requests a review:\n${url}: ${title}`
 }
 
-const getStatusOfCommit = async (ref: string) => {
-  const response = await octokit.rest.repos.getCommit({
-    owner,
-    repo,
-    ref,
-  })
-  const status = response?.status
-  if (status === 200) {
-    const state = response?.data
-    return state
-  } else {
-    throw new Error(`Failed to fetch status for ${ref}`)
-  }
-}
+// const getStatusOfCommit = async (ref: string) => {
+//   const response = await octokit.rest.repos.getCommit({
+//     owner,
+//     repo,
+//     ref,
+//   })
+//   const status = response?.status
+//   if (status === 200) {
+//     const state = response?.data
+//     return state
+//   } else {
+//     throw new Error(`Failed to fetch status for ${ref}`)
+//   }
+// }
 
 const getIndividualPR = async (prNumber: string) => {
   const response = await octokit.rest.pulls.get({
@@ -86,7 +77,7 @@ const getPRs = async () => {
         number: number
         mergeable: string
         ref: string
-        status: string
+        // status: string
         title: string
         url: string
         username: string
@@ -110,13 +101,13 @@ const getPRs = async () => {
         } of prData) {
           if (username !== user) continue
 
-          const status = await getStatusOfCommit(sha)
+          // const status = await getStatusOfCommit(sha)
 
           filteredPRs.push({
             number,
             mergeable,
             ref,
-            status,
+            // status,
             title,
             url,
             username,
