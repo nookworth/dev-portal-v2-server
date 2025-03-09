@@ -36,6 +36,13 @@ app.get('/', async (_, res) => {
   }
 })
 
+/**@desc route for instructions to agent */
+app.post('/', async (req, res) => {
+  // req.body will be the user's message
+  // we need to send this to the agent
+  // and return the agent's response
+})
+
 app.get('/:number', async (req, res) => {
   const { number } = req.params
   try {

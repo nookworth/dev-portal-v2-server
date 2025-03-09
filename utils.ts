@@ -1,5 +1,6 @@
 import { baseRepo as base, owner, auth, repo, user } from './constants.ts'
 import { Octokit } from 'octokit'
+import { tool, Tool } from '@langchain/core/tools'
 
 const octokit = new Octokit({
   auth,
@@ -44,7 +45,8 @@ export const formatSlackMessage = ({
 //   })
 //   const status = response?.status
 //   if (status === 200) {
-//     const state = response?.data
+//     /**@todo find out how to check the status of the commit */
+//     const state = response?.data?.state
 //     return state
 //   } else {
 //     throw new Error(`Failed to fetch status for ${ref}`)

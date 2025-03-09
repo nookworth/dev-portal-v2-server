@@ -1,3 +1,5 @@
+import 'dotenv/config'
+
 let test = process.argv[2]
 let owner = process.argv[3]
 let repo = process.argv[4]
@@ -8,7 +10,8 @@ const devFrontendReviewsChannelId = 'C039QHRA6TA'
 const deploymentBotTestChannelId = 'C089KFXCWJC'
 const channelId =
   test === 'true' ? deploymentBotTestChannelId : devFrontendReviewsChannelId
-console.log({ test })
+const langchainApiKey = process.env.LANGCHAIN_API_KEY
+const openAIKey = process.env.OPENAI_API_KEY
 const nookworthPat = process.env.NOOKWORTH_PAT
 const tpgPat = process.env.PAT
 const auth =
@@ -23,8 +26,21 @@ const headers = {
   'X-GitHub-Api-Version': '2022-11-28',
 }
 
+console.log({ test })
+
 owner ||= 'travelpassgroup'
 repo ||= 'travelpass.com'
 user ||= 'nookoid'
 
-export { baseRepo, baseUrl, channelId, auth, headers, owner, repo, user }
+export {
+  baseRepo,
+  baseUrl,
+  channelId,
+  auth,
+  headers,
+  owner,
+  repo,
+  user,
+  openAIKey,
+  langchainApiKey,
+}
