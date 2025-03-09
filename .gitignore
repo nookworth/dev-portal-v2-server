@@ -12,3 +12,4 @@ docs/
 instance/
 .webassets-cache
 .DS_Store
+demo.ts
