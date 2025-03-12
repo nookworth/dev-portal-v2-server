@@ -1,4 +1,6 @@
 import 'dotenv/config'
+import { Octokit } from 'octokit'
+import { graphql } from '@octokit/graphql'
 
 let test = process.argv[2]
 let owner = process.argv[3]
@@ -25,6 +27,14 @@ const headers = {
   Authorization: `Bearer ${auth}`,
   'X-GitHub-Api-Version': '2022-11-28',
 }
+const octokit = new Octokit({
+  auth,
+})
+const graphqlWithAuth = graphql.defaults({
+  headers: {
+    authorization: auth,
+  },
+})
 
 console.log({ test })
 
@@ -43,4 +53,6 @@ export {
   user,
   openAIKey,
   langchainApiKey,
+  octokit,
+  graphqlWithAuth,
 }

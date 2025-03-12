@@ -3,33 +3,26 @@ import {
   MessagesPlaceholder,
 } from '@langchain/core/prompts'
 import { ChatOpenAI } from '@langchain/openai'
-import { StringOutputParser } from '@langchain/core/output_parsers'
-import { AgentExecutor, createToolCallingAgent } from 'langchain/agents'
 import { AIMessage, BaseMessage, HumanMessage } from '@langchain/core/messages'
 import { Annotation, END, StateGraph } from '@langchain/langgraph'
 import { ToolNode } from '@langchain/langgraph/prebuilt'
-import { tool } from '@langchain/core/tools'
-import { z } from 'zod'
 import { BaseChatModel } from '@langchain/core/language_models/chat_models'
-import { mockLinearTicket } from './mocks.ts'
 import type { DynamicStructuredTool } from '@langchain/core/tools'
+import { linearTicketRetrievalTool } from './tools.ts'
 
 enum AgentName {
   WRITER = 'writer',
   EDITOR = 'editor',
 }
 
-interface AgentState {
-  messages: AIMessage[] | HumanMessage[]
-  reflection: AIMessage[]
-  report: AIMessage[]
-}
-
+/**@todo add reducer logic */
 const agentState = Annotation.Root({
   messages: Annotation<AIMessage[] | HumanMessage[]>,
   reflection: Annotation<AIMessage[]>,
   report: Annotation<AIMessage[]>,
 })
+
+type AgentState = typeof agentState.State
 
 /**@description CREATE AGENTS */
 const createAgent = async (
@@ -52,23 +45,6 @@ const createAgent = async (
 
   return partialPrompt.pipe(llm.bindTools(tools))
 }
-
-/**@description DEFINE TOOLS */
-const linearSchema = z.object({
-  description: z.string().describe('The text content of the Linear ticket'),
-})
-
-/**@todo fetch actual Linear ticket */
-const linearTicketRetrievalTool: DynamicStructuredTool = tool(
-  () => {
-    mockLinearTicket
-  },
-  {
-    name: 'Linear ticket retreival',
-    description: 'use this to retrieve the contents of a Linear ticket',
-    schema: linearSchema,
-  }
-)
 
 /**@description DEFINE AGENT NODES */
 const agentNode = async (
