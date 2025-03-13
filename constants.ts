@@ -1,6 +1,8 @@
 import 'dotenv/config'
 import { Octokit } from 'octokit'
 import { graphql } from '@octokit/graphql'
+import { Annotation } from '@langchain/langgraph'
+import { AIMessage, HumanMessage } from '@langchain/core/messages'
 
 let test = process.argv[2]
 let owner = process.argv[3]
@@ -36,6 +38,16 @@ const graphqlWithAuth = graphql.defaults({
   },
 })
 
+const agentState = Annotation.Root({
+  linearTicket: Annotation<HumanMessage[]>,
+  messages: Annotation<AIMessage[]>({
+    reducer: (x, y) => x.concat(y),
+  }),
+  patches: Annotation<HumanMessage[]>,
+})
+
+type AgentState = typeof agentState.State
+
 console.log({ test })
 
 owner ||= 'travelpassgroup'
@@ -43,6 +55,7 @@ repo ||= 'travelpass.com'
 user ||= 'nookoid'
 
 export {
+  agentState,
   baseRepo,
   baseUrl,
   channelId,
@@ -56,3 +69,5 @@ export {
   octokit,
   graphqlWithAuth,
 }
+
+export type { AgentState }

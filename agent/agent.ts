@@ -4,147 +4,140 @@ import {
 } from '@langchain/core/prompts'
 import { ChatOpenAI } from '@langchain/openai'
 import { AIMessage, BaseMessage, HumanMessage } from '@langchain/core/messages'
-import { Annotation, END, StateGraph } from '@langchain/langgraph'
+import { END, MemorySaver, START, StateGraph } from '@langchain/langgraph'
 import { ToolNode } from '@langchain/langgraph/prebuilt'
 import { BaseChatModel } from '@langchain/core/language_models/chat_models'
-import type { DynamicStructuredTool } from '@langchain/core/tools'
-import { linearTicketRetrievalTool } from './tools.ts'
+import { linearTool, patchTool } from './tools.ts'
+import { agentState } from '../constants.ts'
+import type { AgentState } from '../constants.ts'
 
-enum AgentName {
-  WRITER = 'writer',
-  EDITOR = 'editor',
-}
-
-/**@todo add reducer logic */
-const agentState = Annotation.Root({
-  messages: Annotation<AIMessage[] | HumanMessage[]>,
-  reflection: Annotation<AIMessage[]>,
-  report: Annotation<AIMessage[]>,
-})
-
-type AgentState = typeof agentState.State
-
-/**@description CREATE AGENTS */
-const createAgent = async (
-  llm: BaseChatModel,
-  tools: DynamicStructuredTool[],
-  systemMessage: string
-) => {
+/**@description returns a bound model  */
+const createAgent = async (llm: BaseChatModel, systemMessage: string) => {
   const prompt = ChatPromptTemplate.fromMessages([
     [
       'system',
-      `You are a helpful AI assistant, collaborating with other assistants. Use your provided tool to progress towards answering the question. ONLY make one tool call per execution, and ONLY use your provided tool. If you are unable to fully answer, that's OK, another assistant with a different tool will help where you left off. Execute what you can to make progress. You have access to the following tools: {toolNames}.\n{systemMessage}`,
+      `You are a helpful AI assistant, collaborating with other assistants. If you are unable to fully answer, that's OK, another assistant with a different tool will help where you left off. Execute what you can to make progress.\n{systemMessage}`,
     ],
     new MessagesPlaceholder('messages'),
   ])
 
   const partialPrompt = await prompt.partial({
     systemMessage,
-    toolNames: tools.map(tool => tool.name).join(', '),
   })
 
-  return partialPrompt.pipe(llm.bindTools(tools))
-}
-
-/**@description DEFINE AGENT NODES */
-const agentNode = async (
-  state: AgentState,
-  agent: any,
-  name: AgentName
-): Promise<AgentState> => {
-  const messages = state.messages || []
-  const reflection = state.reflection || []
-  const report = state.report || []
-
-  const result = await agent.invoke({ messages })
-  const aiMessage = new AIMessage(result.content, { name })
-
-  messages.push(aiMessage)
-
-  if (name === AgentName.WRITER) {
-    report.push(aiMessage)
-  } else if (name === AgentName.EDITOR) {
-    reflection.push(aiMessage)
-  }
-
-  return {
-    messages,
-    reflection,
-    report,
-  }
+  return partialPrompt.pipe(llm)
 }
 
 const llm = new ChatOpenAI({ model: 'gpt-4o-mini' })
 
-const writerAgent = createAgent(
+const writerAgent = await createAgent(
   llm,
-  [linearTicketRetrievalTool],
-  'You are an assistant tasked with evaluating the degree to which changes in a codebase meet the requirements of the corresponding Linear ticket.'
+  'You are an assistant tasked with evaluating the degree to which patches from a pull request meet the requirements of the corresponding Linear ticket.'
 )
 
-const writerNode = (state: AgentState): Promise<AgentState> =>
-  agentNode(state, writerAgent, AgentName.WRITER)
+// https://langchain-ai.github.io/langgraphjs/tutorials/reflection/reflection/#define-graph
+const writerNode = async (state: AgentState) => {
+  const { messages } = state
+  return {
+    messages: [await writerAgent.invoke({ messages })],
+  }
+}
 
-const editorAgent = createAgent(
+const editorAgent = await createAgent(
   llm,
-  [],
-  'You are a report editor tasked with giving feedback on written reports. Focus on ensuring the report is succinct and neutral in tone.'
+  'You are a report editor tasked with giving feedback on written reports. Focus on ensuring the report is succinct and factual.'
 )
 
-const editorNode = (state: AgentState): Promise<AgentState> =>
-  agentNode(state, editorAgent, AgentName.EDITOR)
+const editorNode = async (state: AgentState) => {
+  const { messages } = state
+  const clsMap: { [key: string]: new (content: string) => BaseMessage } = {
+    ai: HumanMessage,
+    human: AIMessage,
+  }
+  const translated = [
+    messages[0],
+    ...messages
+      .slice(1)
+      .map(msg => new clsMap[msg._getType()](msg.content.toString())),
+  ]
+  const res = await editorAgent.invoke({ messages: translated })
+  return {
+    messages: [new HumanMessage({ content: res.content })],
+  }
+}
 
-/**@description DEFINE TOOL NODE */
-const tools = [linearTicketRetrievalTool]
+// https://langchain-ai.github.io/langgraphjs/how-tos/force-calling-a-tool-first/#define-the-nodes
+const startNode = () => {
+  return {
+    messages: [
+      new AIMessage({
+        content: '',
+        tool_calls: [
+          {
+            name: 'linear',
+            args: {
+              ticketNumber: '1',
+            },
+            id: 'initial_linear',
+          },
+          {
+            name: 'patches',
+            args: {
+              prNumber: '7096',
+            },
+            id: 'initial_patches',
+          },
+        ],
+      }),
+    ],
+  }
+}
+
+const tools = [linearTool, patchTool]
 const toolNode = new ToolNode(tools)
 
-/**@description DEFINE EDGE LOGIC */
-const router = (state: AgentState): 'callTool' | '__end__' | 'continue' => {
-  const reflection = state.reflection ?? []
-  const messages = state.messages ?? []
-  const lastMessage = messages.at(-1)
+const router = (state: AgentState) => {
+  const { messages } = state
+  if (messages.length > 5) {
+    return END
+  }
 
+  const lastMessage = messages.at(messages.length - 1)
   if (lastMessage && 'tool_calls' in lastMessage && lastMessage.tool_calls) {
     return 'callTool'
   }
 
-  if (!reflection.length) {
-    return 'continue'
-  }
-
-  try {
-    const lastMessage = reflection.at(-1)
-    if (
-      typeof lastMessage?.content === 'string' &&
-      lastMessage.content.includes('FINAL ANSWER')
-    ) {
-      return '__end__'
-    }
-  } catch (error) {
-    return 'continue'
-  }
-
-  return 'continue'
+  return 'Editor'
 }
 
-/**@description DEFINE THE GRAPH */
+const checkpointConfig = { configurable: { thread_id: 'test-thread' } }
 const workflow = new StateGraph(agentState)
-  .addNode('Writer', writerNode, {
-    ends: ['Editor', 'callTool', '__end__'],
-  })
-  .addNode('Editor', editorNode, { ends: ['Writer', '__end__'] })
-  .addNode('callTool', toolNode, { ends: [] })
-  .addEdge('__start__', 'Writer')
-  .compile()
-  .stream(
-    {
-      messages: [
-        new HumanMessage({
-          content: 'Generate a report on the given Linear ticket',
-        }),
-      ],
-    },
-    {
-      recursionLimit: 5,
-    }
-  )
+  .addNode('startNode', startNode)
+  .addNode('Writer', writerNode)
+  .addNode('Editor', editorNode)
+  .addNode('callTool', toolNode)
+  .addEdge(START, 'startNode')
+  .addConditionalEdges('Writer', router)
+  .addConditionalEdges('startNode', router)
+  .addEdge('Editor', 'Writer')
+  .addEdge('callTool', 'Writer')
+
+const app = workflow.compile({ checkpointer: new MemorySaver() })
+
+await app.stream(
+  {
+    messages: [
+      new HumanMessage({
+        content: 'Generate a report on the given Linear ticket',
+      }),
+    ],
+  },
+  checkpointConfig
+)
+
+const snapshot = await app.getState(checkpointConfig)
+console.log(
+  snapshot.values.messages
+    .map((msg: BaseMessage) => msg.content)
+    .join('\n\n\n------------------\n\n\n')
+)
