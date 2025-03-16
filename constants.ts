@@ -2,33 +2,40 @@ import 'dotenv/config'
 import { Octokit } from 'octokit'
 import { graphql } from '@octokit/graphql'
 import { Annotation } from '@langchain/langgraph'
-import { AIMessage, HumanMessage } from '@langchain/core/messages'
+import { BaseMessage, ToolMessage } from '@langchain/core/messages'
+import { LinearClient } from '@linear/sdk'
 
+// Command line arguments
 let test = process.argv[2]
 let owner = process.argv[3]
 let repo = process.argv[4]
 let user = process.argv[5]
+
+// Constants
 const baseRepo = owner === 'travelpassgroup' ? 'master' : 'main'
 const baseUrl = 'https://api.github.com'
 const devFrontendReviewsChannelId = 'C039QHRA6TA'
 const deploymentBotTestChannelId = 'C089KFXCWJC'
 const channelId =
   test === 'true' ? deploymentBotTestChannelId : devFrontendReviewsChannelId
+
+// Environment variables
 const langchainApiKey = process.env.LANGCHAIN_API_KEY
 const openAIKey = process.env.OPENAI_API_KEY
 const nookworthPat = process.env.NOOKWORTH_PAT
 const tpgPat = process.env.PAT
+const linearApiKey = process.env.LINEAR_API_KEY
 const auth =
   test === 'false'
     ? tpgPat
     : owner === 'travelpassgroup'
     ? tpgPat
     : nookworthPat
-const headers = {
-  Accept: 'application/vnd.github+json',
-  Authorization: `Bearer ${auth}`,
-  'X-GitHub-Api-Version': '2022-11-28',
-}
+
+// API clients
+const linearClient = new LinearClient({
+  apiKey: linearApiKey,
+})
 const octokit = new Octokit({
   auth,
 })
@@ -39,11 +46,11 @@ const graphqlWithAuth = graphql.defaults({
 })
 
 const agentState = Annotation.Root({
-  linearTicket: Annotation<HumanMessage[]>,
-  messages: Annotation<AIMessage[]>({
+  linearTicket: Annotation<ToolMessage[]>,
+  messages: Annotation<BaseMessage[]>({
     reducer: (x, y) => x.concat(y),
   }),
-  patches: Annotation<HumanMessage[]>,
+  patches: Annotation<ToolMessage[]>,
 })
 
 type AgentState = typeof agentState.State
@@ -56,18 +63,18 @@ user ||= 'nookoid'
 
 export {
   agentState,
+  auth,
   baseRepo,
   baseUrl,
   channelId,
-  auth,
-  headers,
+  graphqlWithAuth,
+  langchainApiKey,
+  linearClient,
+  octokit,
+  openAIKey,
   owner,
   repo,
   user,
-  openAIKey,
-  langchainApiKey,
-  octokit,
-  graphqlWithAuth,
 }
 
 export type { AgentState }

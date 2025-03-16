@@ -1,7 +1,6 @@
-import { octokit, owner, repo } from '../constants.ts'
+import { linearClient, octokit, owner, repo } from '../constants.ts'
 import { DynamicStructuredTool, tool } from '@langchain/core/tools'
 import { z } from 'zod'
-import { mockLinearTicket } from '../mocks.ts'
 
 const linearSchema = z.object({
   ticketNumber: z.string().describe('The Linear ticket number'),
@@ -11,9 +10,18 @@ const prNumberSchema = z.object({
   prNumber: z.string().describe('The number of the pull request to look up'),
 })
 
-/**@todo fetch actual Linear ticket */
 const linearTool: DynamicStructuredTool<typeof linearSchema> = tool(
-  ({ ticketNumber }: { ticketNumber: string }) => mockLinearTicket,
+  async ({ ticketNumber }: { ticketNumber: string }) => {
+    /**@todo fetch only the fields we need */
+    /**@todo include comments */
+    try {
+      const ticket = await linearClient.issue(ticketNumber)
+      return ticket.description
+    } catch (error) {
+      console.error(error)
+      return 'Failed to retrieve ticket'
+    }
+  },
   {
     name: 'linear',
     description: 'use this to retrieve the contents of a Linear ticket',

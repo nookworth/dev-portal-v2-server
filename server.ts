@@ -36,7 +36,8 @@ app.get('/', async (_, res) => {
   }
 })
 
-app.get('/agent-test', async (_, res) => {
+/**@todo return the report to the frontend */
+app.get('/agent-test', async () => {
   console.log(import('./agent/agent.ts'))
 })
 
