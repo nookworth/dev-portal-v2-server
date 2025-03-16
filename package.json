@@ -5,6 +5,7 @@
     "@langchain/core": "^0.3.42",
     "@langchain/langgraph": "^0.2.54",
     "@langchain/openai": "^0.4.4",
+    "@linear/sdk": "^31.0.0",
     "@octokit/tsconfig": "^4.0.0",
     "@octokit/types": "^13.8.0",
     "@slack/web-api": "^7.8.0",
