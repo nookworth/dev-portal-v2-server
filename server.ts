@@ -6,11 +6,13 @@ import {
   formatSlackMessage,
   getPRs,
   getIndividualPR,
+  parseBranchName,
 } from './utils.ts'
 import { WebClient } from '@slack/web-api'
 import bodyParser from 'body-parser'
 import { channelId as channel } from './constants.ts'
 import 'dotenv/config'
+import { getLinearReport } from './agent/agent.ts'
 
 const { SLACK_TOKEN } = process.env
 
@@ -36,9 +38,11 @@ app.get('/', async (_, res) => {
   }
 })
 
-/**@todo return the report to the frontend */
-app.get('/agent-test', async () => {
-  console.log(import('./agent/agent.ts'))
+app.post('/linear-report', async (req, res) => {
+  const { branchName, prNumber } = req.body
+  const linearSearchTerm = parseBranchName(branchName)
+  const report = await getLinearReport(prNumber, linearSearchTerm)
+  res.json(report)
 })
 
 app.get('/:number', async (req, res) => {
