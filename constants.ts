@@ -55,11 +55,11 @@ const agentState = Annotation.Root({
 
 type AgentState = typeof agentState.State
 
-console.log({ test })
-
 owner ||= 'travelpassgroup'
 repo ||= 'travelpass.com'
 user ||= 'nookoid'
+
+console.log({ test, owner, repo, user })
 
 export {
   agentState,

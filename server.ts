@@ -42,7 +42,12 @@ app.post('/linear-report', async (req, res) => {
   const { branchName, prNumber } = req.body
   const linearSearchTerm = parseBranchName(branchName)
   const report = await getLinearReport(prNumber, linearSearchTerm)
-  res.json(report)
+
+  if (report) {
+    res.status(200).send(report)
+  } else {
+    res.status(404).send('Unable to generate Linear report.')
+  }
 })
 
 app.get('/:number', async (req, res) => {
