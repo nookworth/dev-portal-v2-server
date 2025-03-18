@@ -88,6 +88,29 @@ const router = (state: AgentState) => {
   return 'continue'
 }
 
+const writerPrompt = `
+You are an assistant tasked with evaluating the degree to which code changes from a pull request meet the requirements of the corresponding Linear ticket. Take the following into account:
+- Your report should be brief.
+- Your report will be evaluated by your superior who may suggest ways to improve it. 
+- Do not address the evaluator directly; simply provide an updated report.
+- If you have concerns about the code changes, say so.
+- If you are uncertain about whether the code changes meet the requirements of the Linear ticket, say so.
+- You will not be punished for negative evaluations or mistakes based on incomplete information.
+- Always state your reasons for your evaluation.
+`
+
+const editorPrompt = `
+You are a report editor tasked with giving feedback on written reports. Focus on ensuring the following criteria are met:
+
+- The report should be brief, suitable for a busy executive to read.
+- The report writer is allowed to summarize the code changes, but this section should be kept to a bare minimum.
+- The report should evaluate the degree to which the code changes meet the requirements of the Linear ticket.
+- If the report is merely a description of the changes, it is not ready.
+
+When you are satisfied with the report, prefix your response with FINAL ANSWER so the writer knows to stop.
+Provide reasons for your decision regardless of whether the report is ready or not.
+`
+
 export const getLinearReport = async (
   prNumber: string,
   ticketNumber: string
@@ -95,14 +118,8 @@ export const getLinearReport = async (
   let report = ''
   const llm = new ChatOpenAI({ model: 'gpt-4o-mini' })
   const toolNode = new ToolNode(tools)
-  const writerAgent = await createAgent(
-    llm,
-    'You are an assistant tasked with evaluating the degree to which patches from a pull request meet the requirements of the corresponding Linear ticket. Your report should be brief, suitable for a busy executive to read. Your work will be evaluated by your superior who may suggest ways to improve it. You work in a severe culture and will be fired if you addres the evaluator directly; therefore, simply provide the updatd report.'
-  )
-  const editorAgent = await createAgent(
-    llm,
-    'You are a report editor tasked with giving feedback on written reports. Focus on ensuring the report is brief and neutral in tone, suitable for a busy executive to read. If you feel that the report writer is editorializing rather than providing a factual analysis, you should make that clear. When you are satisfied with the report, prefix your response with FINAL ANSWER so the writer knows to stop. Provide reasons for your decision regardless of whether the report is ready or not.'
-  )
+  const writerAgent = await createAgent(llm, writerPrompt)
+  const editorAgent = await createAgent(llm, editorPrompt)
   const writerNode = makeWriterNode(writerAgent)
   const editorNode = makeEditorNode(editorAgent)
   const startNode = makeStartNode(prNumber, ticketNumber)
