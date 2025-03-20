@@ -10,7 +10,7 @@ import {
 } from './utils.ts'
 import { WebClient } from '@slack/web-api'
 import bodyParser from 'body-parser'
-import { channelId as channel } from './constants.ts'
+import { channelId as channel, octokit } from './constants.ts'
 import 'dotenv/config'
 import { getLinearReport } from './agent/agent.ts'
 
@@ -44,6 +44,17 @@ app.post('/linear-report', async (req, res) => {
   const report = await getLinearReport(prNumber, linearSearchTerm)
 
   if (report) {
+    try {
+      await octokit.rest.issues.createComment({
+        owner: 'travelpassgroup',
+        repo: 'travelpass.com',
+        issue_number: parseInt(prNumber),
+        body: `## Linear Ticket Report\n\n${report}`
+      });
+      console.log(`Successfully added Linear report comment to PR #${prNumber}`);
+    } catch (error) {
+      console.error(`Failed to add Linear report comment to PR #${prNumber}:`, error);
+    }
     res.status(200).send(report)
   } else {
     res.status(404).send('Unable to generate Linear report.')

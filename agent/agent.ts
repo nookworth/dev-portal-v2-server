@@ -90,6 +90,7 @@ const router = (state: AgentState) => {
 
 const writerPrompt = `
 You are an assistant tasked with evaluating the degree to which code changes from a pull request meet the requirements of the corresponding Linear ticket. Take the following into account:
+- Base your report on both the description and comments from the Linear ticket.
 - Your report should be brief.
 - Your report will be evaluated by your superior who may suggest ways to improve it. 
 - Do not address the evaluator directly; simply provide an updated report.
@@ -151,12 +152,12 @@ export const getLinearReport = async (
     }
   )
 
-  /**@todo pretty print the report */
   for await (const chunk of stream) {
     for (const [_, value] of Object.entries(chunk)) {
       const { messages } = value as { messages: BaseMessage[] }
       const messageContent = messages.map(({ content }) => content).join('')
 
+      // Editor node has final say, which means the final report will be the previous messages
       if (messageContent.includes('FINAL ANSWER')) {
         return report
       }
