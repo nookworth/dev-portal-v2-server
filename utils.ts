@@ -21,22 +21,6 @@ const formatSlackMessage = ({ title, url }: { title: string; url: string }) => {
   return `*${user}* requests a review:\n${url}: ${title}`
 }
 
-// const getStatusOfCommit = async (ref: string) => {
-//   const response = await octokit.rest.repos.getCommit({
-//     owner,
-//     repo,
-//     ref,
-//   })
-//   const status = response?.status
-//   if (status === 200) {
-//     /**@todo find out how to check the status of the commit */
-//     const state = response?.data?.state
-//     return state
-//   } else {
-//     throw new Error(`Failed to fetch status for ${ref}`)
-//   }
-// }
-
 const getIndividualPR = async (prNumber: string) => {
   const response = await octokit.rest.pulls.get({
     owner,
@@ -63,7 +47,6 @@ const getPRs = async () => {
         number: number
         mergeable: string
         ref: string
-        // status: string
         title: string
         url: string
         username: string
@@ -86,14 +69,10 @@ const getPRs = async () => {
           username,
         } of prData) {
           if (username !== user) continue
-
-          // const status = await getStatusOfCommit(sha)
-
           filteredPRs.push({
             number,
             mergeable,
             ref,
-            // status,
             title,
             url,
             username,
