@@ -1,4 +1,4 @@
-import { baseRepo as base, owner, octokit, repo, user } from './constants.ts'
+import { baseRepo as base, owner, octokit, repo, user } from '../constants.ts'
 
 const createPullRequest = async (body: string, head: string, title: string) => {
   const response = await octokit.rest.pulls.create({
@@ -15,10 +15,6 @@ const createPullRequest = async (body: string, head: string, title: string) => {
   } else {
     throw new Error(`Failed to create PR: ${status}`)
   }
-}
-
-const formatSlackMessage = ({ title, url }: { title: string; url: string }) => {
-  return `*${user}* requests a review:\n${url}: ${title}`
 }
 
 const getIndividualPR = async (prNumber: string) => {
@@ -88,20 +84,4 @@ const getPRs = async () => {
   }
 }
 
-const parseBranchName = (branchName: string) => {
-  const linearRegex = /[A-Za-z]+-[0-9]+/
-  const linearMatch = branchName.match(linearRegex)
-  if (linearMatch) {
-    return linearMatch[0].toUpperCase()
-  } else {
-    throw new Error('No matching pattern found in branch name')
-  }
-}
-
-export {
-  createPullRequest,
-  formatSlackMessage,
-  getIndividualPR,
-  getPRs,
-  parseBranchName,
-}
+export { createPullRequest, getIndividualPR, getPRs }

@@ -1,18 +1,13 @@
 import express from 'express'
 import { WebSocketServer } from 'ws'
 import http from 'node:http'
-import {
-  createPullRequest,
-  formatSlackMessage,
-  getPRs,
-  getIndividualPR,
-  parseBranchName,
-} from './utils.ts'
+import { createPullRequest, getPRs, getIndividualPR } from './utils/github.ts'
 import { WebClient } from '@slack/web-api'
 import bodyParser from 'body-parser'
 import { channelId as channel, octokit } from './constants.ts'
 import 'dotenv/config'
 import { getLinearReport } from './agent/agent.ts'
+import { formatSlackMessage, parseBranchName } from './utils/string.ts'
 
 const { SLACK_TOKEN } = process.env
 
