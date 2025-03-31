@@ -8,6 +8,7 @@ import { channelId as channel, octokit } from './constants.ts'
 import 'dotenv/config'
 import { getLinearReport } from './agent/agent.ts'
 import { formatSlackMessage, parseBranchName } from './utils/string.ts'
+import { handleStatus } from './utils/webhook.ts'
 
 const { SLACK_TOKEN } = process.env
 
@@ -18,6 +19,33 @@ const wss = new WebSocketServer({ server })
 
 app.use(bodyParser.text())
 app.use(bodyParser.json())
+
+const clients = new Map<string, express.Response[]>()
+
+app.get('/events/:username', (req, res) => {
+  const username = req.params.username.toLowerCase()
+  res.setHeader('Content-Type', 'text/event-stream')
+  res.setHeader('Cache-Control', 'no-cache')
+  res.setHeader('Connection', 'keep-alive')
+
+  if (!clients.has(username)) {
+    clients.set(username, [])
+  }
+  clients.get(username)?.push(res)
+
+  req.on('close', () => {
+    const userClients = clients.get(username)
+    if (userClients) {
+      clients.set(
+        username,
+        userClients.filter(client => client !== res)
+      )
+      if (clients.get(username)?.length === 0) {
+        clients.delete(username)
+      }
+    }
+  })
+})
 
 // the frontend fetches PRs from this route
 app.get('/', async (_, res) => {
@@ -44,11 +72,14 @@ app.post('/linear-report', async (req, res) => {
         owner: 'travelpassgroup',
         repo: 'travelpass.com',
         issue_number: parseInt(prNumber),
-        body: `## Linear Ticket Report\n\n${report}`
-      });
-      console.log(`Successfully added Linear report comment to PR #${prNumber}`);
+        body: `## Linear Ticket Report\n\n${report}`,
+      })
+      console.log(`Successfully added Linear report comment to PR #${prNumber}`)
     } catch (error) {
-      console.error(`Failed to add Linear report comment to PR #${prNumber}:`, error);
+      console.error(
+        `Failed to add Linear report comment to PR #${prNumber}:`,
+        error
+      )
     }
     res.status(200).send(report)
   } else {
@@ -100,12 +131,18 @@ app.post('/review-message', async (req, res) => {
 })
 
 app.post('/webhook', (req, res) => {
-  console.log('GitHub webhook event received:', req.body)
-  wss.clients.forEach(client => {
-    if (client.readyState === WebSocket.OPEN) {
-      client.send(JSON.stringify(req.body))
+  const event = req.headers['x-github-event']
+
+  if (event === 'status') {
+    const data = handleStatus(req.body)
+
+    if (data && data.authorUsername && clients.has(data.authorUsername)) {
+      clients.get(data.authorUsername)?.forEach(client => {
+        client.write(`data: ${JSON.stringify(data.data)}\n\n`)
+      })
     }
-  })
+  }
+
   res.status(200).send('Event received')
 })
 
