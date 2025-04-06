@@ -1,7 +1,3 @@
-/**
- * TODO: types
- * potentiallly use https://github.com/octokit/webhooks
- */
 export const handlePullRequestReview = payload => {
   const { action, review, pull_request } = payload
   if (action === 'submitted') {
