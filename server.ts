@@ -27,6 +27,7 @@ app.get('/events/:username', (req, res) => {
   res.setHeader('Content-Type', 'text/event-stream')
   res.setHeader('Cache-Control', 'no-cache')
   res.setHeader('Connection', 'keep-alive')
+  res.status(200).send('Connected for SSE')
 
   if (!clients.has(username)) {
     clients.set(username, [])
@@ -132,6 +133,7 @@ app.post('/review-message', async (req, res) => {
 
 app.post('/webhook', (req, res) => {
   const event = req.headers['x-github-event']
+  const payload = req.body
 
   if (event === 'status') {
     const data = handleStatus(req.body)
@@ -142,6 +144,13 @@ app.post('/webhook', (req, res) => {
       })
     }
   }
+
+  // Broadcast all webhooks to all clients for testing
+  clients.forEach((userClients, _username) => {
+    userClients.forEach(client => {
+      client.write(`data: ${JSON.stringify({ event, payload })}\n\n`)
+    })
+  })
 
   res.status(200).send('Event received')
 })
