@@ -23,8 +23,6 @@ export const handleStatus = payload => {
   const { commit, context, description, sha, state, target_url } = payload
   const { author } = commit
 
-  console.log({ author })
-
   return {
     authorUsername: author.login.toLowerCase(),
     data: {

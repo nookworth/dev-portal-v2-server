@@ -22,31 +22,39 @@ app.use(bodyParser.json())
 
 const clients = new Map<string, express.Response[]>()
 
-app.get('/events/:username', (req, res) => {
-  const username = req.params.username.toLowerCase()
-  res.setHeader('Content-Type', 'text/event-stream')
-  res.setHeader('Cache-Control', 'no-cache')
-  res.setHeader('Connection', 'keep-alive')
-  res.status(200).send('Connected for SSE')
+// app.get('/events/:username', (req, res) => {
+//   const username = req.params.username.toLowerCase()
+//   res.setHeader('Content-Type', 'text/event-stream')
+//   res.setHeader('Cache-Control', 'no-cache')
+//   res.setHeader('Connection', 'keep-alive')
+//   res.setHeader('X-Accel-Buffering', 'no')
+//   res.flushHeaders()
 
-  if (!clients.has(username)) {
-    clients.set(username, [])
-  }
-  clients.get(username)?.push(res)
+//   if (!clients.has(username)) {
+//     clients.set(username, [])
+//   }
+//   clients.get(username)?.push(res)
 
-  req.on('close', () => {
-    const userClients = clients.get(username)
-    if (userClients) {
-      clients.set(
-        username,
-        userClients.filter(client => client !== res)
-      )
-      if (clients.get(username)?.length === 0) {
-        clients.delete(username)
-      }
-    }
-  })
-})
+//   res.write('data: {"type":"connected"}\n\n')
+
+//   const heartbeat = setInterval(() => {
+//     res.write(':\n\n')
+//   }, 30000)
+
+//   req.on('close', () => {
+//     clearInterval(heartbeat)
+//     const userClients = clients.get(username)
+//     if (userClients) {
+//       clients.set(
+//         username,
+//         userClients.filter(client => client !== res)
+//       )
+//       if (clients.get(username)?.length === 0) {
+//         clients.delete(username)
+//       }
+//     }
+//   })
+// })
 
 // the frontend fetches PRs from this route
 app.get('/', async (_, res) => {
