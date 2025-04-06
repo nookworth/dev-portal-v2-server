@@ -143,22 +143,24 @@ app.post('/webhook', (req, res) => {
   const event = req.headers['x-github-event']
   const payload = req.body
 
-  if (event === 'status') {
-    const data = handleStatus(req.body)
+  console.log({ event, payload })
 
-    if (data && data.authorUsername && clients.has(data.authorUsername)) {
-      clients.get(data.authorUsername)?.forEach(client => {
-        client.write(`data: ${JSON.stringify(data.data)}\n\n`)
-      })
-    }
-  }
+  // if (event === 'status') {
+  //   const data = handleStatus(req.body)
 
-  // Broadcast all webhooks to all clients for testing
-  clients.forEach((userClients, _username) => {
-    userClients.forEach(client => {
-      client.write(`data: ${JSON.stringify({ event, payload })}\n\n`)
-    })
-  })
+  //   if (data && data.authorUsername && clients.has(data.authorUsername)) {
+  //     clients.get(data.authorUsername)?.forEach(client => {
+  //       client.write(`data: ${JSON.stringify(data.data)}\n\n`)
+  //     })
+  //   }
+  // }
+
+  // // Broadcast all webhooks to all clients for testing
+  // clients.forEach((userClients, _username) => {
+  //   userClients.forEach(client => {
+  //     client.write(`data: ${JSON.stringify({ event, payload })}\n\n`)
+  //   })
+  // })
 
   res.status(200).send('Event received')
 })
